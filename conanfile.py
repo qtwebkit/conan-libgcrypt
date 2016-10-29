@@ -2,7 +2,7 @@ from conans import ConanFile
 import os, shutil
 from conans.tools import download, unzip, replace_in_file, check_md5
 from conans import CMake
-
+import json
 
 class LibgcryptConan(ConanFile):
     name = "libgcrypt"
@@ -87,7 +87,7 @@ class LibgcryptConan(ConanFile):
                 gpg_error_path = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
                 break
 
-        configure_command = "cd %s && %s ./configure --enable-static --enable-shared --with-libgpg-error-prefix=%s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), gpg_error_path, config_options_string)
+        configure_command = "cd %s && %s ./configure --prefix=%s --enable-static --enable-shared --with-libgpg-error-prefix=%s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), self.package_folder, gpg_error_path, config_options_string)
         self.output.warn(configure_command)
         self.run(configure_command)
         self.run("cd %s && make" % self.ZIP_FOLDER_NAME)
@@ -106,6 +106,12 @@ class LibgcryptConan(ConanFile):
             self.copy(pattern="*.a", dst="lib", src="%s" % self.ZIP_FOLDER_NAME, keep_path=False)
         
         self.copy(pattern="*.lib", dst="lib", src="%s" % self.ZIP_FOLDER_NAME, keep_path=False)
+        
+        self.copy("libgcrypt-config", dst="bin", src="%s/src" % self.ZIP_FOLDER_NAME, keep_path=False)
+        self.copy("hmac256", dst="bin", src="%s/src" % self.ZIP_FOLDER_NAME, keep_path=False)
+        self.copy("dumpsexp", dst="bin", src="%s/src" % self.ZIP_FOLDER_NAME, keep_path=False)
+        self.copy("mpicalc", dst="bin", src="%s/src" % self.ZIP_FOLDER_NAME, keep_path=False)
+
         
     def package_info(self):
         self.cpp_info.libs = ['gcrypt']
