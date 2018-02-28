@@ -14,22 +14,22 @@ class LibgcryptConan(ConanFile):
     exports_sources = ["CMakeLists.txt"]
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False],
-               "enable_m_guard": [True, False],
-               "disable_asm": [True, False],
-               "enable_ld_version_script": [True, False],
-               "disable_endian_check": [True, False],
-               "enable_random_daemon": [True, False],
-               "enable_hmac_binary_check": [True, False],
-               "disable_padlock_support": [True, False],
-               "disable_aesni_support": [True, False],
-               "disable_O_flag_munging": [True, False]}
+               "enable-m-guard": [True, False],
+               "disable-asm": [True, False],
+               "enable-ld-version-script": [True, False],
+               "disable-endian-check": [True, False],
+               "enable-random-daemon": [True, False],
+               "enable-hmac-binary-check": [True, False],
+               "disable-padlock-support": [True, False],
+               "disable-aesni-support": [True, False],
+               "disable-O-flag-munging": [True, False]}
                #TODO add in non-binary flags
 
-    default_options = "shared=False", "enable_m_guard=False", "disable_asm=True", \
-                      "enable_ld_version_script=False", "disable_endian_check=False", \
-                      "enable_random_daemon=False", "disable_aesni_support=False", \
-                      "enable_hmac_binary_check=False", "disable_padlock_support=False", \
-                      "disable_O_flag_munging=False"
+    default_options = "shared=False", "enable-m-guard=False", "disable-asm=True", \
+                      "enable-ld-version-script=False", "disable-endian-check=False", \
+                      "enable-random-daemon=False", "disable-aesni-support=False", \
+                      "enable-hmac-binary-check=False", "disable-padlock-support=False", \
+                      "disable-O-flag-munging=False"
 
     requires = 'libgpg-error/1.24@DEGoodmanWilson/stable'
 
