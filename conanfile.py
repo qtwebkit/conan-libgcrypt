@@ -72,7 +72,12 @@ class LibgcryptConan(ConanFile):
                     config_args.append("--with-libgpg-error-prefix={0}".format(gpg_error_path))
                     break
 
-            print config_args
+            # This is a terrible hack to make cross-compiling on Travis work
+            if (self.settings.arch=='x86' and self.settings.os=='Linux'):
+                env_build.configure(args=config_args, host="i686-linux-gnu") #because Conan insists on setting this to i686-linux-gnueabi, which smashes gpg-error hard
+            else:
+                env_build.configure(args=config_args)
+
 
             env_build.configure(args=config_args)
             env_build.make()
