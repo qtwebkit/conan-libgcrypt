@@ -77,9 +77,6 @@ class LibgcryptConan(ConanFile):
                 env_build.configure(args=config_args, host="i686-linux-gnu") #because Conan insists on setting this to i686-linux-gnueabi, which smashes gpg-error hard
             else:
                 env_build.configure(args=config_args)
-
-
-            env_build.configure(args=config_args)
             env_build.make()
        
     def package(self):
