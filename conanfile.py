@@ -25,7 +25,7 @@ class LibgcryptConan(ConanFile):
                "disable_O_flag_munging": [True, False]}
                #TODO add in non-binary flags
 
-    default_options = "shared=False", "enable_m_guard=False", "disable_asm=False", \
+    default_options = "shared=False", "enable_m_guard=False", "disable_asm=True", \
                       "enable_ld_version_script=False", "disable_endian_check=False", \
                       "enable_random_daemon=False", "disable_aesni_support=False", \
                       "enable_hmac_binary_check=False", "disable_padlock_support=False", \
