@@ -33,6 +33,9 @@ class LibgcryptConan(ConanFile):
 
     requires = 'libgpg-error/1.24@DEGoodmanWilson/stable'
 
+    def configure(self):
+        # Because this is pure C
+        del self.settings.compiler.libcxx
 
     def source(self):
         source_url = "https://gnupg.org/ftp/gcrypt/libgcrypt"
