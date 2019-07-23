@@ -22,8 +22,7 @@ class LibgcryptConan(ConanFile):
     default_options = {"shared": False, "fPIC": True}
     _source_subfolder = "sources"
 
-    #requires = 'libgpg-error/1.36@qtproject/stable'
-    requires = 'libgpg-error/1.36@bincrafters/testing'
+    requires = 'libgpg-error/1.36@qtproject/stable'
 
     @property
     def _is_msvc(self):
@@ -80,7 +79,39 @@ class LibgcryptConan(ConanFile):
         tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
                               'GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1-avx-bmi2-amd64.lo"', '')
         tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
                               'GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-ssse3-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-ssse3-amd64-asm.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS poly1305-sse2-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS poly1305-avx2-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-sse2-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-ssse3-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-avx2-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS salsa20-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_DIGESTS="$GCRYPT_DIGESTS crc-intel-pclmul.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS arcfour-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS blowfish-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS cast5-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS des-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS twofish-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia-arm.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS serpent-sse2-amd64.lo"', '')
         tools.replace_in_file(os.path.join(self._source_subfolder, "cipher", "stribog.c"),
                               "u64 Z[8] = {};", "u64 Z[8] = {0};")
         tools.replace_in_file(os.path.join(self._source_subfolder, "cipher", "cipher-ccm.c"),
@@ -94,6 +125,42 @@ unsigned char tmp[blocksize];
         tools.replace_in_file(os.path.join(self._source_subfolder, "cipher", "cipher-poly1305.c"),
                               "static const byte zero_padding_buf[15] = {};",
                               "static const byte zero_padding_buf[15] = {0};")
+        tools.replace_in_file(os.path.join(self._source_subfolder, "src", "hwf-x86.c"),
+                              "#if !defined (__i386__) && !defined (__x86_64__)",
+                              "#if !defined (__i386__) && !defined (__x86_64__) && !defined(_M_IX86) && !defined(_M_X64)")
+        unistd_h = """
+        #ifdef _MSC_VER
+        #define access _access
+        #define R_OK 4
+        #define W_OK 2
+        #define X_OK R_OK
+        #define F_OK 0
+
+        # define S_IRWXU    0700
+        # define S_IRUSR    0400
+        # define S_IWUSR    0200
+        # define S_IXUSR    0100
+
+        typedef int ssize_t;
+        #else
+        #include <unistd.h>
+        #endif
+        """
+        os.makedirs(os.path.join(self._source_subfolder, "random", "sys"))
+        tools.save(os.path.join(self._source_subfolder, "random", "unistd.h"), unistd_h)
+        tools.save(os.path.join(self._source_subfolder, "src", "unistd.h"), unistd_h)
+        tools.save(os.path.join(self._source_subfolder, "random", "sys", "time.h"), "")
+
+    @property
+    def _msvc_env(self):
+        env_build = VisualStudioBuildEnvironment(self)
+        libdirs = [os.path.join(self.build_folder, self._source_subfolder, "ciper"),
+                   os.path.join(self.build_folder, self._source_subfolder, "compat"),
+                   os.path.join(self.build_folder, self._source_subfolder, "mpi"),
+                   os.path.join(self.build_folder, self._source_subfolder, "random"),
+                   os.path.join(self.build_folder, self._source_subfolder, "src")]
+        env_build.lib_paths.extend(libdirs)
+        return env_build.vars
 
     def build(self):
         gpg_error_prefix = self.deps_cpp_info["libgpg-error"].rootpath
@@ -132,8 +199,11 @@ unsigned char tmp[blocksize];
                 args.extend(['RC=%s' % rc, 'WINDRES=%s' % rc])
         with tools.chdir(self._source_subfolder):
             with tools.vcvars(self.settings) if self._is_msvc else tools.no_op():
-                with tools.environment_append(VisualStudioBuildEnvironment(self).vars) if self._is_msvc else tools.no_op():
+                with tools.environment_append(self._msvc_env) if self._is_msvc else tools.no_op():
+                    print(self._msvc_env)
                     env_build = AutoToolsBuildEnvironment(self, win_bash=tools.os_info.is_windows)
+                    if self._is_msvc:
+                        env_build.libs.remove("ws2_32")
                     env_build.configure(args=args, build=build, host=host)
                     env_build.make()
                     env_build.install()
