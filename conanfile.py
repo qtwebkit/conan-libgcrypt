@@ -1,102 +1,145 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from conans import ConanFile, AutoToolsBuildEnvironment, tools
+from conans import ConanFile, AutoToolsBuildEnvironment, tools, VisualStudioBuildEnvironment
 import os
+import shutil
 
 
 class LibgcryptConan(ConanFile):
     name = "libgcrypt"
-    version = "1.7.3"
+    version = "1.8.4"
     url = "http://github.com/DEGoodmanWilson/conan-libgcrypt"
-    description = "The GNU bignum library"
-    license = "https://www.gnupg.org/software/libgcrypt/index.html"
-    exports_sources = ["CMakeLists.txt"]
+    author = "Bincrafters <bincrafters@gmail.com>"
+    description = "Libgcrypt is a general purpose cryptographic library originally based on code from GnuPG"
+    license = "LGPL-2.1-or-later"
+    homepage = "https://www.gnupg.org/download/index.html#libgcrypt"
+    topics = ("conan", "libgcrypt", "gcrypt", "gnupg", "gpg", "crypto", "cryptography")
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False],
-               "enable-m-guard": [True, False],
-               "disable-asm": [True, False],
-               "enable-ld-version-script": [True, False],
-               "disable-endian-check": [True, False],
-               "enable-random-daemon": [True, False],
-               "enable-hmac-binary-check": [True, False],
-               "disable-padlock-support": [True, False],
-               "disable-aesni-support": [True, False],
-               "disable-O-flag-munging": [True, False]}
-               #TODO add in non-binary flags
+               "fPIC": [True, False]}
 
-    default_options = "shared=False", "enable-m-guard=False", "disable-asm=True", \
-                      "enable-ld-version-script=False", "disable-endian-check=False", \
-                      "enable-random-daemon=False", "disable-aesni-support=False", \
-                      "enable-hmac-binary-check=False", "disable-padlock-support=False", \
-                      "disable-O-flag-munging=False"
+    default_options = {"shared": False, "fPIC": True}
+    _source_subfolder = "sources"
 
-    requires = 'libgpg-error/1.24@DEGoodmanWilson/stable'
+    #requires = 'libgpg-error/1.36@qtproject/stable'
+    requires = 'libgpg-error/1.36@bincrafters/testing'
+
+    @property
+    def _is_msvc(self):
+        return self.settings.compiler == "Visual Studio"
+
+    def build_requirements(self):
+        if tools.os_info.is_windows:
+            if "CONAN_BASH_PATH" not in os.environ:
+                self.build_requires("cygwin_installer/2.9.0@bincrafters/stable")
+        if self._is_msvc:
+            self.build_requires("automake_build_aux/1.16.1@bincrafters/stable")
+
+    def config_options(self):
+        if self.settings.os == "Windows":
+            del self.options.fPIC
 
     def configure(self):
-        # Because this is pure C
         del self.settings.compiler.libcxx
 
     def source(self):
         source_url = "https://gnupg.org/ftp/gcrypt/libgcrypt"
-        tools.get("{0}/libgcrypt-{1}.tar.gz".format(source_url, self.version))
+        tools.get("{0}/libgcrypt-{1}.tar.gz".format(source_url, self.version),
+                  sha256="fc3c49cc8611068e6008482c3bbee6c66b9287808bbb4e14a473f4cc347b78ce")
         extracted_dir = self.name + "-" + self.version
-        os.rename(extracted_dir, "sources")
+        os.rename(extracted_dir, self._source_subfolder)
+
+    def _apply_msvc_fixes(self):
+        # FIXME : create patch
+        tools.replace_in_file(os.path.join(self._source_subfolder, "src", "gcrypt.h.in"),
+                              "typedef int  pid_t;", "")
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'ln -s "$ac_rel_source" "$ac_file" 2>/dev/null ||',
+                              'cp -pR "$ac_rel_source" "$ac_file" 2>/dev/null ||')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "cipher", "Makefile.in"),
+                              "cipher-gcm-armv8-aarch32-ce.lo cipher-gcm-armv8-aarch64-ce.lo", "")
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256-ssse3-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256-avx-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256-avx2-bmi2-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-ssse3-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-avx-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-avx2-bmi2-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_DIGESTS="$GCRYPT_DIGESTS whirlpool-sse2-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1-ssse3-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1-avx-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1-avx-bmi2-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "configure"),
+                              'GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-ssse3-amd64.lo"', '')
+        tools.replace_in_file(os.path.join(self._source_subfolder, "cipher", "stribog.c"),
+                              "u64 Z[8] = {};", "u64 Z[8] = {0};")
+        tools.replace_in_file(os.path.join(self._source_subfolder, "cipher", "cipher-ccm.c"),
+                              "unsigned char tmp[blocksize];",
+                              """
+#ifdef _MSC_VER
+unsigned char * tmp = (unsigned char*) _alloca(sizeof(unsigned char) * blocksize);
+#else
+unsigned char tmp[blocksize];
+#endif""")
+        tools.replace_in_file(os.path.join(self._source_subfolder, "cipher", "cipher-poly1305.c"),
+                              "static const byte zero_padding_buf[15] = {};",
+                              "static const byte zero_padding_buf[15] = {0};")
 
     def build(self):
-        if self.settings.compiler == 'Visual Studio':
-            # self.build_vs()
-            self.output.fatal("No windows support yet. Sorry. Help a fellow out and contribute back?")
-
-        with tools.chdir("sources"):
-            env_build = AutoToolsBuildEnvironment(self)
-            env_build.fpic = True
-
-            config_args = []
-            for option_name in self.options.values.fields:
-                if(option_name == "shared"):
-                    if(getattr(self.options, "shared")):
-                        config_args.append("--enable-shared")
-                        config_args.append("--disable-static")
-                    else:
-                        config_args.append("--enable-static")
-                        config_args.append("--disable-shared")
-                else:
-                    activated = getattr(self.options, option_name)
-                    if activated:
-                        self.output.info("Activated option! {0}".format(option_name))
-                        config_args.append("--{0}".format(option_name))
-
-            # find the libgpg-error folder, so we can set the binary path for configuring it
-            gpg_error_path = ""
-            for path in self.deps_cpp_info.lib_paths:
-                if "libgpg-error" in path:
-                    gpg_error_path = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
-                    config_args.append("--with-libgpg-error-prefix={0}".format(gpg_error_path))
-                    break
-
-            # This is a terrible hack to make cross-compiling on Travis work
-            if (self.settings.arch=='x86' and self.settings.os=='Linux'):
-                env_build.configure(args=config_args, host="i686-linux-gnu") #because Conan insists on setting this to i686-linux-gnueabi, which smashes gpg-error hard
-            else:
-                env_build.configure(args=config_args)
-            env_build.make()
+        gpg_error_prefix = self.deps_cpp_info["libgpg-error"].rootpath
+        gpg_error_prefix = tools.unix_path(gpg_error_prefix) if tools.os_info.is_windows else gpg_error_prefix
+        args = ["--disable-dependency-tracking",
+                "--disable-doc",
+                "--with-libgpg-error-prefix=%s" % gpg_error_prefix]
+        if self.options.shared:
+            args.extend(["--disable-static", "--enable-shared"])
+        else:
+            args.extend(["--disable-shared", "--enable-static"])
+        build = None
+        host = None
+        rc = None
+        if self._is_msvc:
+            self._apply_msvc_fixes()
+            # INSTALL.windows: Native binaries, built using the MS Visual C/C++ tool chain.
+            for filename in ["compile", "ar-lib"]:
+                shutil.copy(os.path.join(self.deps_cpp_info["automake_build_aux"].rootpath, filename),
+                            os.path.join(self._source_subfolder, "build-aux", filename))
+            build = False
+            if self.settings.arch == "x86":
+                host = "i686-w64-mingw32"
+                rc = "windres --target=pe-i386"
+            elif self.settings.arch == "x86_64":
+                host = "x86_64-w64-mingw32"
+                rc = "windres --target=pe-x86-64"
+            args.extend(["CC=$PWD/build-aux/compile cl -nologo",
+                         "LD=link",
+                         "NM=dumpbin -symbols",
+                         "STRIP=:",
+                         "AR=$PWD/build-aux/ar-lib lib",
+                         "RANLIB=:",
+                         "--disable-asm"])
+            if rc:
+                args.extend(['RC=%s' % rc, 'WINDRES=%s' % rc])
+        with tools.chdir(self._source_subfolder):
+            with tools.vcvars(self.settings) if self._is_msvc else tools.no_op():
+                with tools.environment_append(VisualStudioBuildEnvironment(self).vars) if self._is_msvc else tools.no_op():
+                    env_build = AutoToolsBuildEnvironment(self, win_bash=tools.os_info.is_windows)
+                    env_build.configure(args=args, build=build, host=host)
+                    env_build.make()
+                    env_build.install()
        
     def package(self):
         self.copy(pattern="COPYING*", src="sources")
-        self.copy("*.h", dst="include", src="sources/src", keep_path=True)
-        # self.copy(pattern="*.dll", dst="bin", src="bin", keep_path=False)
-        self.copy(pattern="*.lib", dst="lib", src="sources", keep_path=False)
-        self.copy(pattern="*.a", dst="lib", src="sources", keep_path=False)
-        self.copy(pattern="*.so*", dst="lib", src="sources", keep_path=False)
-        self.copy(pattern="*.dylib", dst="lib", src="sources", keep_path=False)
-        
-        self.copy("libgcrypt-config", dst="bin", src="sources/src", keep_path=False)
-        self.copy("hmac256", dst="bin", src="sources/src", keep_path=False)
-        self.copy("dumpsexp", dst="bin", src="sources/src", keep_path=False)
-        self.copy("mpicalc", dst="bin", src="sources/src", keep_path=False)
         
     def package_info(self):
-        self.cpp_info.libs = tools.collect_libs(self)
-
-
+        self.cpp_info.libs = ["gcrypt"]
