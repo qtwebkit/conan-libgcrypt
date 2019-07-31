@@ -385,10 +385,10 @@
 #undef M_GUARD
 
 /* defined to the name of the strong random device */
-#undef NAME_OF_DEV_RANDOM
+#cmakedefine NAME_OF_DEV_URANDOM "@NAME_OF_DEV_URANDOM@"
 
 /* defined to the name of the weaker random device */
-#undef NAME_OF_DEV_URANDOM
+#cmakedefine NAME_OF_DEV_RANDOM "@NAME_OF_DEV_RANDOM@"
 
 /* Name of this package */
 #cmakedefine PACKAGE "@PACKAGE@"
